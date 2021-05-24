@@ -239,6 +239,11 @@ class Container(BaseImageObject):
             if len(me_list) > 1:
                 self.update_self(count=2, me_list=me_list)
 
+
+    def get_latest_tag(self):
+        pass
+
+
     def socket_check(self):
         depends_on_names = []
         hard_depends_on_names = []
@@ -254,7 +259,8 @@ class Container(BaseImageObject):
             current_tag = container.attrs['Config']['Image']
 
             try:
-                latest_image = self.pull(current_tag)
+                latest_tag = self.get_latest_tag(current_tag)
+                latest_image = self.pull(latest_tag)
             except ConnectionError:
                 continue
 
