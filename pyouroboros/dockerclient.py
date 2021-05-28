@@ -4,16 +4,17 @@ from docker import DockerClient, tls
 from os.path import isdir, isfile, join
 from docker.errors import DockerException, APIError, NotFound
 
-from pyouroboros.helpers import set_properties, remove_sha_prefix, get_digest
+from pyouroboros.helpers import set_properties, remove_sha_prefix, get_digest, Importer
 
 
 class Docker(object):
-    def __init__(self, socket, config, data_manager, notification_manager):
+    def __init__(self, socket, config, data_manager, notification_manager, hooks=None):
         self.config = config
         self.socket = socket
         self.client = self.connect()
         self.data_manager = data_manager
         self.logger = getLogger()
+        self.hooks = hooks
 
         self.notification_manager = notification_manager
 
@@ -240,9 +241,11 @@ class Container(BaseImageObject):
                 self.update_self(count=2, me_list=me_list)
 
 
-    def get_latest_tag(self):
-        pass
-
+    def get_latest_tag(self, container):
+        current_tag = container.attrs['Config']['Image']
+        if self.docker.hooks and hasattr(self.docker.hooks, "get_latest_tag"):
+            current_tag = self.docker.hooks.get_latest_tag(container)
+        return current_tag
 
     def socket_check(self):
         depends_on_names = []
@@ -256,11 +259,11 @@ class Container(BaseImageObject):
 
         for container in self.monitored:
             current_image = container.image
-            current_tag = container.attrs['Config']['Image']
+            # current_tag = container.attrs['Config']['Image']
+            current_tag = self.get_latest_tag(container)
 
             try:
-                latest_tag = self.get_latest_tag(current_tag)
-                latest_image = self.pull(latest_tag)
+                latest_image = self.pull(current_tag)
             except ConnectionError:
                 continue
 

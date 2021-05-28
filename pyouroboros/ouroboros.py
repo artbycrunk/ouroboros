@@ -7,7 +7,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from pyouroboros.config import Config
-from pyouroboros import VERSION, BRANCH
+from pyouroboros import VERSION, BRANCH, helpers
 from pyouroboros.logger import OuroborosLogger
 from pyouroboros.dataexporters import DataManager
 from pyouroboros.notifiers import NotificationManager
@@ -94,6 +94,8 @@ def main():
                               help='Private docker registry password\n'
                                    'EXAMPLE: MyPa$$w0rd')
 
+    docker_group.add_argument('--hooks', default=None, dest='HOOKS', help='Hooks module name')
+
     data_group = parser.add_argument_group('Data Export', 'Configuration of data export functionality')
     data_group.add_argument('-D', '--data-export', choices=['prometheus', 'influxdb'], default=Config.data_export,
                             dest='DATA_EXPORT', help='Enable exporting of data for chosen option')
@@ -152,9 +154,12 @@ def main():
     scheduler = BackgroundScheduler()
     scheduler.start()
 
+    importer = helpers.Importer()
+    hooks = importer.import_hook(args.HOOKS)
+
     for socket in config.docker_sockets:
         try:
-            docker = Docker(socket, config, data_manager, notification_manager)
+            docker = Docker(socket, config, data_manager, notification_manager, hooks)
             if config.swarm:
                 mode = Service(docker)
             else:

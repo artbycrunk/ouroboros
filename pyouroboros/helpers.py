@@ -1,3 +1,29 @@
+import importlib
+
+class ModuleNotFoundException(Exception):
+    pass
+
+
+class Importer(object):
+    def __init__(self):
+        pass
+
+    def import_hook(self, module):
+        if module:
+            ouroboros_hook = self._import(module, description="OuroborosHooks")
+            if hasattr(ouroboros_hook, "OuroborosHooks"):
+                return getattr(ouroboros_hook, "OuroborosHooks")
+        return None
+
+    def _import(self, module, description=None):
+        try:
+            mod = importlib.import_module(module)
+        except ImportError:
+            msg = "{0} {1} cannot be found".format(description, module)
+            raise ModuleNotFoundException(msg)
+        return mod
+
+
 def set_properties(old, new, self_name=None):
     """Store object for spawning new container in place of the one with outdated image"""
     properties = {
